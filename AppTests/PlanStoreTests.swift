@@ -1,0 +1,69 @@
+import Foundation
+import HeadroomCore
+import Testing
+@testable import Headroom
+
+@MainActor
+@Suite("PlanStore")
+struct PlanStoreTests {
+    let today = LocalDate(year: 2026, month: 9, day: 26)!
+
+    func tempURL() -> URL {
+        FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+            .appendingPathComponent("plan.json")
+    }
+
+    @Test("a saved plan loads back identically")
+    func roundTrip() {
+        let url = tempURL()
+        let store = PlanStore(fileURL: url)
+        store.update { $0 = SamplePlan.make(today: today) }
+        #expect(PlanStore(fileURL: url).plan == SamplePlan.make(today: today).withIDs(from: store.plan))
+        #expect(PlanStore(fileURL: url).plan == store.plan)
+    }
+
+    @Test("a missing file starts an empty plan")
+    func missingFile() {
+        #expect(PlanStore(fileURL: tempURL()).plan == CashPlan())
+    }
+
+    @Test("an unreadable file starts an empty plan instead of crashing")
+    func corruptFile() throws {
+        let url = tempURL()
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data("{ not json".utf8).write(to: url)
+        #expect(PlanStore(fileURL: url).plan == CashPlan())
+    }
+
+    @Test("delete all removes the file and empties the plan")
+    func deleteAll() {
+        let url = tempURL()
+        let store = PlanStore(fileURL: url)
+        store.update { $0 = SamplePlan.make(today: today) }
+        #expect(FileManager.default.fileExists(atPath: url.path))
+        store.deleteAll()
+        #expect(store.plan == CashPlan())
+        #expect(!FileManager.default.fileExists(atPath: url.path))
+    }
+
+    @Test("confirming the balance stamps today and keeps today's marks")
+    func confirmBalance() {
+        let store = PlanStore(fileURL: tempURL())
+        let rent = CashEvent(name: "Rent", amount: .dollars(750), kind: .bill, schedule: .once(today))
+        store.update { $0.events = [rent] }
+        store.confirmBalance(.dollars(900), today: today, billsAlreadyOut: [rent.id], incomeStillComing: [])
+        #expect(store.plan.balance == BalanceSnapshot(amount: .dollars(900), asOf: today, billsAlreadyOutToday: [rent.id]))
+    }
+}
+
+extension CashPlan {
+    /// The same plan with event IDs copied from `other` (IDs are random per build).
+    func withIDs(from other: CashPlan) -> CashPlan {
+        var copy = self
+        for index in copy.events.indices where index < other.events.count {
+            copy.events[index].id = other.events[index].id
+        }
+        return copy
+    }
+}
