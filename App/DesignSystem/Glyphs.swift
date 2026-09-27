@@ -1,3 +1,4 @@
+import HeadroomCore
 import SwiftUI
 
 // The drawing marks (docs/REDESIGN-SPEC.md sections 1.2 and 4.2). Each has one meaning
@@ -63,6 +64,20 @@ struct ClearanceGlyph: View {
         case below
         /// Low below $0: hangs from the solid $0 rule.
         case belowZero
+
+        /// The variant for a lowest point measured against a floor.
+        init(low: Money, floor: Money) {
+            self = low < .zero ? .belowZero : low < floor ? .below : .above
+        }
+
+        /// Evergreen above the floor, Amber below it, Brick below $0.
+        var tint: Color {
+            switch self {
+            case .above: Theme.accent
+            case .below: Theme.warning
+            case .belowZero: Theme.danger
+            }
+        }
     }
 
     let kind: Kind

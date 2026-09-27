@@ -54,13 +54,6 @@ enum Theme {
 }
 
 extension View {
-    /// A solid content surface with the one corner radius. Removed once no caller remains.
-    func surfaceCard() -> some View {
-        padding(Theme.Space.l)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.surface, in: .rect(cornerRadius: Theme.radius, style: .continuous))
-    }
-
     /// Lists and forms on the themed canvas instead of the system gray.
     func themedList() -> some View {
         scrollContentBackground(.hidden)
