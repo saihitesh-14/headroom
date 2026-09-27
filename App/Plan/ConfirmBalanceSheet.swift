@@ -11,6 +11,8 @@ struct ConfirmBalanceSheet: View {
     @State private var incomeComing: Set<UUID> = []
     @State private var showError = false
 
+    static let errorText = "Enter the balance your bank shows, like 1,000 or 1000.00."
+
     private var todaysEvents: [CashEvent] {
         store.plan.events.filter { !$0.schedule.occurrences(from: today, through: today).isEmpty }
     }
@@ -22,10 +24,10 @@ struct ConfirmBalanceSheet: View {
                     CurrencyField(label: "Balance", text: $amountText, allowsNegative: true)
                 } footer: {
                     if showError {
-                        Text("Enter the balance your bank shows, like 1,000 or 1000.00.")
+                        Label(Self.errorText, systemImage: "exclamationmark.circle")
                             .foregroundStyle(Theme.danger)
                     } else {
-                        Text("Use the balance your bank shows right now.")
+                        Text("Use the balance your bank shows right now.").sectionText()
                     }
                 }
 
@@ -43,23 +45,22 @@ struct ConfirmBalanceSheet: View {
                             }
                         }
                     } header: {
-                        Text("Scheduled today")
+                        Text("Scheduled today").sectionText()
                     } footer: {
                         Text("Unless you mark them, bills dated today are subtracted and pay dated today is not added.")
+                            .sectionText()
                     }
                 }
             }
             .tint(Theme.accent)
-            .listRowBackground(Theme.surface)
-            .themedList()
-            .navigationTitle("Checking balance")
+            .navigationTitle("Confirm balance")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(role: .cancel) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(role: .confirm) { confirm() }
+                    Button("Confirm", role: .confirm, action: confirm)
                 }
             }
             .onAppear(perform: prefill)
@@ -68,7 +69,7 @@ struct ConfirmBalanceSheet: View {
 
     private func itemLabel(_ event: CashEvent, detail: String) -> some View {
         VStack(alignment: .leading, spacing: Theme.Space.xs) {
-            Text("\(event.name), \(event.amount.formatted)")
+            Text("\(event.name), \(event.amount.displayText)")
             Text(detail).font(.footnote).foregroundStyle(Theme.textSecondary)
         }
     }
@@ -85,6 +86,7 @@ struct ConfirmBalanceSheet: View {
     private func confirm() {
         guard let amount = MoneyInput.parseBalance(amountText) else {
             withAnimation { showError = true }
+            AccessibilityNotification.Announcement(Self.errorText).post()
             return
         }
         let todayIDs = Set(todaysEvents.map(\.id))

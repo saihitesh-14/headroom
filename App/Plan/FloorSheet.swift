@@ -8,6 +8,8 @@ struct FloorSheet: View {
     @State private var amountText = ""
     @State private var showError = false
 
+    static let errorText = "Enter an amount, like 200. $0 is fine."
+
     var body: some View {
         NavigationStack {
             Form {
@@ -15,16 +17,15 @@ struct FloorSheet: View {
                     CurrencyField(label: "Keep at least", text: $amountText)
                 } footer: {
                     if showError {
-                        Text("Enter an amount, like 200. $0 is fine.")
+                        Label(Self.errorText, systemImage: "exclamationmark.circle")
                             .foregroundStyle(Theme.danger)
                     } else {
                         Text("Headroom warns you when a purchase would take checking below this amount.")
+                            .sectionText()
                     }
                 }
             }
-            .listRowBackground(Theme.surface)
-            .themedList()
-            .navigationTitle("Cash floor")
+            .navigationTitle("Floor")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -43,6 +44,7 @@ struct FloorSheet: View {
     private func save() {
         guard let floor = MoneyInput.parse(amountText) else {
             withAnimation { showError = true }
+            AccessibilityNotification.Announcement(Self.errorText).post()
             return
         }
         store.update { $0.floor = floor }

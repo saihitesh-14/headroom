@@ -22,7 +22,7 @@ struct EventEditor: View {
                     CurrencyField(label: "Amount", text: $draft.amountText)
                 } footer: {
                     if showErrors, !draft.errors.isEmpty {
-                        Text(draft.errors.joined(separator: " "))
+                        Label(draft.errors.joined(separator: " "), systemImage: "exclamationmark.circle")
                             .foregroundStyle(Theme.danger)
                     }
                 }
@@ -35,6 +35,7 @@ struct EventEditor: View {
                 } footer: {
                     if showsMonthEndNote {
                         Text("In shorter months this lands on the last day of the month.")
+                            .sectionText()
                     }
                 }
 
@@ -47,8 +48,6 @@ struct EventEditor: View {
                     }
                 }
             }
-            .listRowBackground(Theme.surface)
-            .themedList()
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -98,6 +97,7 @@ struct EventEditor: View {
     private func save() {
         guard let event = draft.makeEvent() else {
             withAnimation { showErrors = true }
+            AccessibilityNotification.Announcement(draft.errors.joined(separator: " ")).post()
             return
         }
         store.upsert(event)

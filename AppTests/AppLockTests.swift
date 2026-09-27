@@ -19,6 +19,15 @@ final class StubAuthenticator: Authenticator, @unchecked Sendable {
     }
 }
 
+/// An authenticator that reports one kind of biometry.
+struct FixedBiometryAuthenticator: Authenticator {
+    let kind: Biometry
+
+    func availability() -> String? { nil }
+    func authenticate(reason: String) async -> Bool { true }
+    func biometry() -> Biometry { kind }
+}
+
 @MainActor
 @Suite("AppLock")
 struct AppLockTests {
@@ -105,6 +114,37 @@ struct AppLockTests {
         _ = await (first, second)
         #expect(auth.prompts == 1)
         #expect(!lock.isLocked)
+    }
+
+    @Test("an authenticator that does not report biometry means the passcode")
+    func defaultBiometry() {
+        #expect(StubAuthenticator().biometry() == .none)
+        #expect(makeLock().biometry == .none)
+    }
+
+    @Test("the lock reports the device's biometry")
+    func reportsBiometry() {
+        let defaults = UserDefaults(suiteName: "AppLockTests-\(UUID().uuidString)")!
+        for kind in [Biometry.faceID, .touchID, .opticID, .none] {
+            #expect(AppLock(authenticator: FixedBiometryAuthenticator(kind: kind), defaults: defaults).biometry == kind)
+        }
+    }
+
+    @Test("the lock copy names the biometry", arguments: [
+        (Biometry.faceID, "Lock with Face ID", "Unlock with Face ID", "faceid",
+         "Asks for Face ID or your passcode when you come back to Headroom."),
+        (Biometry.touchID, "Lock with Touch ID", "Unlock with Touch ID", "touchid",
+         "Asks for Touch ID or your passcode when you come back to Headroom."),
+        (Biometry.opticID, "Lock with Optic ID", "Unlock with Optic ID", "opticid",
+         "Asks for Optic ID or your passcode when you come back to Headroom."),
+        (Biometry.none, "Lock with passcode", "Unlock with passcode", "lock",
+         "Asks for your passcode when you come back to Headroom."),
+    ])
+    func copy(kind: Biometry, toggle: String, unlock: String, symbol: String, footer: String) {
+        #expect(kind.lockTitle == toggle)
+        #expect(kind.unlockTitle == unlock)
+        #expect(kind.symbolName == symbol)
+        #expect(kind.lockFooter == footer)
     }
 
     @Test("the setting is remembered")

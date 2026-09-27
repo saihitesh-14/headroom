@@ -35,6 +35,18 @@ enum QuestionParser {
         return moneyPattern.matches(in: text, range: range).compactMap { Range($0.range, in: text).map { String(text[$0]) } }
     }
 
+    /// Where each dollar amount sits in `text`, in UTF-16 units, in the order they appear.
+    static func moneyRanges(in text: String) -> [NSRange] {
+        moneyPattern.matches(in: text, range: NSRange(text.startIndex..., in: text)).map(\.range)
+    }
+
+    /// The first date phrase in `text` and the moment it names, as the system's date detector reads it.
+    static func firstDate(in text: String) -> (range: NSRange, date: Date)? {
+        let range = NSRange(text.startIndex..., in: text)
+        guard let match = dateDetector.firstMatch(in: text, range: range), let date = match.date else { return nil }
+        return (match.range, date)
+    }
+
     /// The amounts in `text` that parse and are within the $10,000,000 cap.
     static func prices(in text: String) -> [Money] {
         moneyTokens(in: text).compactMap(amount(ofToken:))

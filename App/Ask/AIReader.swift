@@ -28,7 +28,7 @@ enum AIReader {
         do {
             phrases = try await interpreter.interpret(text)
         } catch {
-            return AIReadResult(parsed: builtIn, note: "On-device AI could not read this, so the built-in parser did.")
+            return AIReadResult(parsed: builtIn, note: "Read without on-device AI this time. Look over each field.")
         }
 
         let question = text.lowercased()

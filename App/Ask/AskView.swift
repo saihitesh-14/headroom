@@ -77,7 +77,8 @@ struct AskView: View {
                 if id != nil { confirmOnScreen = true }
             }
             .sheet(item: $confirm, onDismiss: { confirmOnScreen = false }) { request in
-                ConfirmCard(draft: request.draft, note: request.note) { purchase in
+                ConfirmCard(draft: request.draft, note: request.note,
+                            question: request.question, spans: request.spans) { purchase in
                     confirm = nil
                     path.append(purchase)
                 }
@@ -337,16 +338,20 @@ struct AskView: View {
         guard !isReading, confirm == nil, !text.isEmpty else { return }
         questionFocused = false
         guard useOnDeviceAI, OnDeviceAI.availability == .available else {
-            let parsed = QuestionParser.parse(text, today: Date(), timeZone: .current)
-            confirm = ConfirmRequest(draft: PurchaseDraft(parsed: parsed, today: today), question: text)
+            let now = Date()
+            let parsed = QuestionParser.parse(text, today: now, timeZone: .current)
+            confirm = ConfirmRequest(draft: PurchaseDraft(parsed: parsed, today: today), question: text,
+                                     spans: QuestionSpans.find(in: text, parsed: parsed, today: now, timeZone: .current))
             return
         }
         isReading = true
         Task {
-            let result = await AIReader.read(text, interpreter: OnDeviceInterpreter(), today: Date(), timeZone: .current)
+            let now = Date()
+            let result = await AIReader.read(text, interpreter: OnDeviceInterpreter(), today: now, timeZone: .current)
             isReading = false
             confirm = ConfirmRequest(draft: PurchaseDraft(parsed: result.parsed, today: today),
-                                     note: result.note, question: text)
+                                     note: result.note, question: text,
+                                     spans: QuestionSpans.find(in: text, parsed: result.parsed, today: now, timeZone: .current))
         }
     }
 }
@@ -357,4 +362,6 @@ struct ConfirmRequest: Identifiable {
     var note: String?
     /// The question as typed, or nil when opened with "Enter details instead".
     var question: String?
+    /// Where each field was read from in `question`, for the underlines on the Confirm sheet.
+    var spans: [ReadSpan] = []
 }

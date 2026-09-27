@@ -53,6 +53,15 @@ struct TypographyTests {
         #expect(width("Headroom", bold) > width("Headroom", large))
     }
 
+    @Test("the acknowledgment names the typeface and shows the bundled license")
+    func acknowledgment() {
+        #expect(Typography.credit.typeface == "Overpass typeface")
+        #expect(Typography.credit.license == "SIL Open Font License 1.1")
+        let text = Typography.credit.licenseText
+        #expect(text?.hasPrefix("Copyright 2021 The Overpass Project Authors") == true)
+        #expect(text?.contains("SIL OPEN FONT LICENSE Version 1.1") == true)
+    }
+
     @Test("cap height is 0.7 em, which sizes the glyphs")
     func capHeight() {
         let font = Typography.uiFont(.readingXL)

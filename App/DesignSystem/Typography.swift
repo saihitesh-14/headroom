@@ -99,6 +99,22 @@ enum Typography {
         Font(uiFont(role, size: size, boldText: boldText) as CTFont)
     }
 
+    /// The typeface credit in Settings > Acknowledgments. It lives here because the typeface
+    /// is only named in this file (section 3.3).
+    struct Credit {
+        let typeface: String
+        let license: String
+        /// The bundled license file, exactly as shipped.
+        let licenseText: String?
+    }
+
+    static let credit = Credit(
+        typeface: "Overpass typeface",
+        license: "SIL Open Font License 1.1",
+        licenseText: Bundle.main.url(forResource: "Overpass-OFL", withExtension: "txt")
+            .flatMap { try? String(contentsOf: $0, encoding: .utf8) }
+    )
+
     /// Cap height for a role; glyphs beside a reading are sized from it.
     static func capHeight(_ role: OverpassRole, size: DynamicTypeSize = .large, boldText: Bool = false) -> CGFloat {
         uiFont(role, size: size, boldText: boldText).capHeight

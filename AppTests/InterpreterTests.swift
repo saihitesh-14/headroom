@@ -68,6 +68,6 @@ struct AIReaderTests {
         let result = await read(text, StubInterpreter(fails: true))
         #expect(result.parsed == QuestionParser.parse(text, today: now, timeZone: .current))
         #expect(result.parsed.source == .builtIn)
-        #expect(result.note == "On-device AI could not read this, so the built-in parser did.")
+        #expect(result.note == "Read without on-device AI this time. Look over each field.")
     }
 }
