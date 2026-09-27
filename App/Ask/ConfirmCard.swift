@@ -6,6 +6,7 @@ struct ConfirmCard: View {
     @Environment(\.today) private var today
     @Environment(\.dismiss) private var dismiss
     @State var draft: PurchaseDraft
+    var note: String?
     let onCheck: (Purchase) -> Void
     @State private var showErrors = false
 
@@ -27,7 +28,10 @@ struct ConfirmCard: View {
                         Text(errors.joined(separator: " "))
                             .foregroundStyle(Theme.danger)
                     } else {
-                        Text("Paid from checking. Make sure these match what you meant.")
+                        VStack(alignment: .leading, spacing: Theme.Space.xs) {
+                            if let note { Text(note) }
+                            Text("Paid from checking. Make sure these match what you meant.")
+                        }
                     }
                 }
             }

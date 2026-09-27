@@ -31,6 +31,8 @@ struct QuestionParserTests {
         ("Can I get a jacket for $700.", 70_000),
         ("is $ 45 ok for shoes", 4_500),
         ("buy a $0.99 app", 99),
+        ("new winter jacket, $130, maybe in two weeks", 13_000),
+        ("a $1,249.99, or cheaper?", 124_999),
     ])
     func prices(text: String, cents: Int) {
         #expect(parse(text).price == Money(cents: cents))

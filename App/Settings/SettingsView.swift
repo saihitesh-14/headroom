@@ -7,6 +7,16 @@ struct SettingsView: View {
     @Environment(\.today) private var today
     @State private var confirmingDelete = false
     @State private var confirmingSample = false
+    @AppStorage(OnDeviceAI.settingKey) private var useOnDeviceAI = true
+
+    private var aiUnavailableReason: String? {
+        if case .unavailable(let reason) = OnDeviceAI.availability { return reason }
+        return nil
+    }
+
+    private var aiBinding: Binding<Bool> {
+        Binding(get: { useOnDeviceAI && aiUnavailableReason == nil }, set: { useOnDeviceAI = $0 })
+    }
 
     var body: some View {
         @Bindable var lock = lock
@@ -18,6 +28,15 @@ struct SettingsView: View {
                         .tint(Theme.accent)
                 } footer: {
                     Text(lock.unavailableReason ?? "Asks for Face ID or your passcode when you come back to Headroom.")
+                }
+
+                Section {
+                    Toggle("Read questions with on-device AI", isOn: aiBinding)
+                        .disabled(aiUnavailableReason != nil)
+                        .tint(Theme.accent)
+                } footer: {
+                    Text(aiUnavailableReason
+                         ?? "Uses Apple's on-device model to read your question. It never leaves this iPhone, and prices always come from the digits you type.")
                 }
 
                 Section {

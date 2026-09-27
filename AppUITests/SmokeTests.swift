@@ -2,6 +2,9 @@ import XCTest
 
 /// End-to-end: sample plan → ask → confirm → result. Also saves screenshots for the README.
 final class SmokeTests: XCTestCase {
+    /// Matches OnDeviceAI.settingKey; UI tests use the deterministic built-in parser.
+    let onDeviceAIKey = "useOnDeviceAI"
+
     override func setUp() {
         continueAfterFailure = false
     }
@@ -9,7 +12,7 @@ final class SmokeTests: XCTestCase {
     @MainActor
     func testAskAboutALaptopShowsAVerdict() {
         let app = XCUIApplication()
-        app.launchArguments = ["-uiTestSamplePlan"]
+        app.launchArguments = ["-uiTestSamplePlan", "-\(onDeviceAIKey)", "NO"]
         app.launch()
 
         XCTAssertTrue(app.staticTexts["spendingRoom"].waitForExistence(timeout: 10))

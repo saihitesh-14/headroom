@@ -10,7 +10,10 @@ struct AskView: View {
     @State private var confirm: ConfirmRequest?
     @State private var path: [Purchase] = []
     @State private var confirmingBalance = false
+    @State private var isReading = false
+    @AppStorage(OnDeviceAI.settingKey) private var useOnDeviceAI = true
     @ScaledMetric(relativeTo: .largeTitle) private var heroSize: CGFloat = 56
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var isEmptyPlan: Bool {
         store.plan.balance == nil && store.plan.floor == nil && store.plan.events.isEmpty
@@ -33,7 +36,7 @@ struct AskView: View {
             .navigationTitle("Headroom")
             .navigationDestination(for: Purchase.self) { ResultView(initialPurchase: $0) }
             .sheet(item: $confirm) { request in
-                ConfirmCard(draft: request.draft) { purchase in
+                ConfirmCard(draft: request.draft, note: request.note) { purchase in
                     confirm = nil
                     path.append(purchase)
                 }
@@ -147,11 +150,19 @@ struct AskView: View {
                 .onSubmit(check)
                 .accessibilityIdentifier("question")
             Button(action: check) {
-                Text("Check").frame(maxWidth: .infinity)
+                Group {
+                    if isReading {
+                        Label("Reading your question", systemImage: "sparkles")
+                            .symbolEffect(.pulse, options: .repeating, isActive: !reduceMotion)
+                    } else {
+                        Text("Check")
+                    }
+                }
+                .frame(maxWidth: .infinity)
             }
             .buttonStyle(.glassProminent)
             .controlSize(.large)
-            .disabled(question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .disabled(isReading || question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             .accessibilityIdentifier("check")
             Button("Use the form instead") {
                 confirm = ConfirmRequest(draft: PurchaseDraft(
@@ -164,13 +175,23 @@ struct AskView: View {
 
     private func check() {
         let text = question.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
-        let parsed = QuestionParser.parse(text, today: Date(), timeZone: .current)
-        confirm = ConfirmRequest(draft: PurchaseDraft(parsed: parsed, today: today))
+        guard !text.isEmpty, !isReading else { return }
+        guard useOnDeviceAI, OnDeviceAI.availability == .available else {
+            let parsed = QuestionParser.parse(text, today: Date(), timeZone: .current)
+            confirm = ConfirmRequest(draft: PurchaseDraft(parsed: parsed, today: today))
+            return
+        }
+        isReading = true
+        Task {
+            let result = await AIReader.read(text, interpreter: OnDeviceInterpreter(), today: Date(), timeZone: .current)
+            isReading = false
+            confirm = ConfirmRequest(draft: PurchaseDraft(parsed: result.parsed, today: today), note: result.note)
+        }
     }
 }
 
 struct ConfirmRequest: Identifiable {
     let id = UUID()
     let draft: PurchaseDraft
+    var note: String?
 }
