@@ -16,10 +16,11 @@ struct ParsedQuestion: Equatable, Sendable {
 
 /// The built-in, deterministic question reader. No model, no network.
 enum QuestionParser {
-    /// "$700", "$1,249.99", "$ 45". A comma may follow as punctuation ("$130, maybe"),
-    /// but not a comma plus digits, which would mean a malformed number like "$1,2".
+    /// "$700", "$1,249.99", "$ 45". A comma may follow as punctuation ("$130, maybe"), but
+    /// nothing that would make the number mean something else: more digits ("$1,2",
+    /// "$700.555") or a letter ("$2k", "$1.5K"). Those come back blank for the user to type.
     private static let moneyPattern = try! NSRegularExpression(
-        pattern: #"\$\s?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?(?!\d)(?!,\d)"#)
+        pattern: #"\$\s?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?(?!\d)(?!,\d)(?!\.\d)(?![A-Za-z])"#)
     private static let dateDetector = try! NSDataDetector(types: NSTextCheckingResult.CheckingType.date.rawValue)
 
     private static let fillerWords: Set<String> = [

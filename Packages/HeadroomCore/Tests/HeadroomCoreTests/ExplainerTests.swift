@@ -86,6 +86,7 @@ struct ExplainerTests {
             strings += [Explainer.headline(a), Explainer.summary(a), Explainer.nextIncomeText(a), Explainer.earliestFitValue(a)]
             strings += Explainer.reasons(a).map(\.label)
             if let note = Explainer.earliestFitNote(a) { strings.append(note) }
+            if let warning = Explainer.baselineWarningText(a) { strings.append(warning) }
         }
         let allMissing: [MissingInfo] = [.balance, .balanceNotConfirmedToday(lastConfirmed: day(-1)), .floor, .noEvents,
                                          .invalidPrice, .dateInPast, .dateBeyondRange(latest: day(30))]
@@ -96,5 +97,49 @@ struct ExplainerTests {
                 #expect(!text.lowercased().contains(banned), "\(banned) in: \(text)")
             }
         }
+    }
+}
+
+@Suite("Explainer review fixes")
+struct ExplainerReviewFixTests {
+    func analysis(_ plan: CashPlan, _ price: Money, _ date: LocalDate) throws -> Analysis {
+        try #require(analyzed(CashEngine.analyze(plan, purchase: Purchase(item: "laptop", price: price, date: date), today: today)))
+    }
+
+    @Test("pay that lands after the day's low is not listed as moving the balance to the low")
+    func reasonsExcludePayAfterLow() throws {
+        let plan = makePlan(balance: dollars(1_000), floor: dollars(0),
+                            income("Paycheck", 800, .once(day(4))),
+                            bill("Rent", 100, .once(day(10))))
+        let a = try analysis(plan, dollars(900), day(4))
+        #expect(a.purchaseLow == Low(amount: dollars(100), date: day(4)))
+        #expect(Explainer.reasons(a).map(\.label) == ["Laptop, Sep 30"])
+        #expect(Explainer.nextIncomeText(a) == "Next income: Paycheck +$800 on Wed Sep 30")
+    }
+
+    @Test("a dip below zero before the purchase date is put into words")
+    func warningBeforePurchaseNegative() throws {
+        let plan = makePlan(balance: dollars(300), floor: dollars(100),
+                            bill("Rent", 750, .once(day(2))),
+                            income("Paycheck", 800, .once(day(4))))
+        let a = try analysis(plan, dollars(50), day(5))
+        #expect(a.verdict == .fits(room: dollars(200)))
+        #expect(Explainer.baselineWarningText(a) == "Before this purchase, your plan goes to -$450 on Mon Sep 28.")
+    }
+
+    @Test("a dip below the floor before the purchase date is put into words")
+    func warningBeforePurchaseBelowFloor() throws {
+        let plan = makePlan(balance: dollars(300), floor: dollars(100),
+                            bill("Rent", 220, .once(day(2))),
+                            income("Paycheck", 800, .once(day(4))))
+        let a = try analysis(plan, dollars(50), day(5))
+        #expect(Explainer.baselineWarningText(a) == "Before this purchase, your plan drops to $80 on Mon Sep 28, below your $100 floor.")
+    }
+
+    @Test("no separate warning when the plan is fine, or when the headline already says it is short")
+    func noWarningWhenCovered() throws {
+        #expect(Explainer.baselineWarningText(try analysis(workedExamplePlan(), dollars(20), today)) == nil)
+        let short = makePlan(balance: dollars(500), floor: dollars(200), bill("Rent", 400, .once(day(3))))
+        #expect(Explainer.baselineWarningText(try analysis(short, dollars(20), today)) == nil)
     }
 }

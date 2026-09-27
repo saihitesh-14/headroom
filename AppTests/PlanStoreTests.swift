@@ -25,15 +25,40 @@ struct PlanStoreTests {
 
     @Test("a missing file starts an empty plan")
     func missingFile() {
-        #expect(PlanStore(fileURL: tempURL()).plan == CashPlan())
+        let store = PlanStore(fileURL: tempURL())
+        #expect(store.plan == CashPlan())
+        #expect(!store.isUnavailable)
     }
 
-    @Test("an unreadable file starts an empty plan instead of crashing")
+    @Test("a corrupt file is kept aside, not overwritten, and the app starts fresh")
     func corruptFile() throws {
         let url = tempURL()
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try Data("{ not json".utf8).write(to: url)
-        #expect(PlanStore(fileURL: url).plan == CashPlan())
+        let store = PlanStore(fileURL: url)
+        #expect(store.plan == CashPlan())
+        #expect(!store.isUnavailable)
+        let backup = url.deletingLastPathComponent().appendingPathComponent("plan.corrupt.json")
+        #expect(try String(contentsOf: backup, encoding: .utf8) == "{ not json")
+    }
+
+    @Test("a file that cannot be read right now (phone locked) is never overwritten, and loads once readable")
+    func unreadableFile() throws {
+        let url = tempURL()
+        let original = PlanStore(fileURL: url)
+        original.update { $0 = SamplePlan.make(today: today) }
+        try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: url.path)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: url.path) }
+
+        let store = PlanStore(fileURL: url)
+        #expect(store.isUnavailable)
+        store.update { $0 = CashPlan() }          // an edit while unavailable must not write
+        try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: url.path)
+        #expect(PlanStore.load(from: url) == .loaded(original.plan))
+
+        store.reloadIfUnavailable()
+        #expect(!store.isUnavailable)
+        #expect(store.plan == original.plan)
     }
 
     @Test("delete all removes the file and empties the plan")

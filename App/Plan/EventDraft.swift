@@ -81,6 +81,14 @@ struct EventDraft: Identifiable {
         var list: [String] = []
         if trimmedName.isEmpty { list.append("Add a name.") }
         if amount == nil { list.append("Enter an amount, like 750 or 49.99.") }
+        if repeatKind == .twiceMonthly {
+            // Two days that land on the same date would count once and understate the total.
+            if day1 == day2 {
+                list.append("Pick two different days.")
+            } else if min(day1, day2) > 28 {
+                list.append("Pick at least one day on the 28th or earlier.")
+            }
+        }
         return list
     }
 

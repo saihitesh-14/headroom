@@ -19,6 +19,11 @@ struct PlanView: View {
                     Button { editingBalance = true } label: { balanceRow }
                 } header: {
                     Text("Checking")
+                } footer: {
+                    if store.saveFailed {
+                        Text("Headroom could not save your last change. Try again.")
+                            .foregroundStyle(Theme.danger)
+                    }
                 }
 
                 Section {

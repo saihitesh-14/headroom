@@ -30,7 +30,7 @@ struct EmptyStateView: View {
                 .buttonStyle(.glass)
             }
             .controlSize(.large)
-            Label("Your plan stays on this iPhone.", systemImage: "lock")
+            Label("Headroom never sends your plan anywhere.", systemImage: "lock")
                 .font(.footnote)
                 .foregroundStyle(Theme.textSecondary)
         }

@@ -4,6 +4,7 @@ import SwiftUI
 struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(AppLock.self) private var lock
+    @Environment(PlanStore.self) private var store
     @State private var today = LocalDate.today()
     @State private var selectedTab = AppTab.ask
 
@@ -33,14 +34,18 @@ struct RootView: View {
             lock.scenePhaseChanged(to: phase)
             if phase == .active {
                 today = .today()
-                if lock.isLocked { Task { await lock.unlock() } }
+                store.reloadIfUnavailable()
+                Task { await lock.appBecameActive() }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
             today = .today()
         }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.protectedDataDidBecomeAvailableNotification)) { _ in
+            store.reloadIfUnavailable()
+        }
         .task {
-            if lock.isLocked { await lock.unlock() }
+            await lock.appBecameActive()
         }
     }
 }

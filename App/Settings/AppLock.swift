@@ -36,6 +36,9 @@ final class AppLock {
     private let authenticator: any Authenticator
     private let defaults: UserDefaults
     private(set) var isLocked = false
+    private var isAuthenticating = false
+    /// Set when the app locks in the background; the next return to the app prompts once.
+    private var promptWhenActive = false
 
     var isEnabled: Bool {
         didSet { defaults.set(isEnabled, forKey: Self.enabledKey) }
@@ -49,15 +52,27 @@ final class AppLock {
         self.defaults = defaults
         isEnabled = defaults.bool(forKey: Self.enabledKey)
         isLocked = isEnabled && authenticator.availability() == nil
+        promptWhenActive = isLocked
     }
 
     func scenePhaseChanged(to phase: ScenePhase) {
         guard phase == .background, isEnabled, authenticator.availability() == nil else { return }
         isLocked = true
+        promptWhenActive = true
+    }
+
+    /// Prompts once after returning from the background (or at launch). Closing the Face ID
+    /// sheet also makes the app active, so this must not prompt again; Unlock retries.
+    func appBecameActive() async {
+        guard promptWhenActive, isLocked else { return }
+        promptWhenActive = false
+        await unlock()
     }
 
     func unlock() async {
-        guard isLocked else { return }
+        guard isLocked, !isAuthenticating else { return }
+        isAuthenticating = true
+        defer { isAuthenticating = false }
         if await authenticator.authenticate(reason: "Unlock Headroom to see your plan.") {
             isLocked = false
         }

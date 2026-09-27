@@ -45,6 +45,20 @@ struct EventDraftTests {
         #expect(draft.errors == ["Enter an amount, like 750 or 49.99."])
     }
 
+    @Test("twice a month needs two days that can never land on the same date")
+    func twiceMonthlyDaysDiffer() {
+        var draft = EventDraft(newOf: .bill, today: today, timeZone: tz)
+        draft.name = "Loan"
+        draft.amountText = "100"
+        draft.repeatKind = .twiceMonthly
+        draft.day1 = 15; draft.day2 = 15
+        #expect(draft.errors == ["Pick two different days."])
+        draft.day1 = 30; draft.day2 = 31
+        #expect(draft.errors == ["Pick at least one day on the 28th or earlier."])
+        draft.day1 = 15; draft.day2 = 31
+        #expect(draft.errors.isEmpty)
+    }
+
     @Test("switching repeat type uses the date or days on screen")
     func repeatKinds() {
         var draft = EventDraft(newOf: .income, today: today, timeZone: tz)

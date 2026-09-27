@@ -73,6 +73,12 @@ struct ResultView: View {
                 .foregroundStyle(Theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("chartSummary")
+            if let warning = Explainer.baselineWarningText(a) {
+                Label(warning, systemImage: "exclamationmark.circle")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Theme.warning)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 

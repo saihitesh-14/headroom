@@ -43,6 +43,10 @@ struct QuestionParserTests {
         "a $700 laptop and a $50 case",
         "a $99999999999999999 yacht",
         "Can I buy a laptop?",
+        "a $2k laptop",
+        "a $5K bike",
+        "is $1.5k too much for a couch",
+        "a $700.555 phone",
     ])
     func noPrice(text: String) {
         #expect(parse(text).price == nil)

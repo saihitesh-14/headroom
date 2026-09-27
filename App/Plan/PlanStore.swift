@@ -7,8 +7,15 @@ import Observation
 @MainActor
 @Observable
 final class PlanStore {
-    private(set) var plan: CashPlan
+    enum LoadResult: Equatable {
+        case missing, loaded(CashPlan), unreadable, corrupt
+    }
+
+    private(set) var plan = CashPlan()
     private(set) var saveFailed = false
+    /// The file exists but cannot be read right now (for example, the phone is locked and
+    /// the file has complete protection). Edits are refused so the real plan is never overwritten.
+    private(set) var isUnavailable = false
     let fileURL: URL
 
     static var defaultFileURL: URL {
@@ -17,17 +24,45 @@ final class PlanStore {
 
     init(fileURL: URL = PlanStore.defaultFileURL) {
         self.fileURL = fileURL
-        plan = Self.load(from: fileURL)
+        apply(Self.load(from: fileURL))
     }
 
-    /// A missing or unreadable file starts an empty plan rather than crashing.
-    static func load(from url: URL) -> CashPlan {
-        guard let data = try? Data(contentsOf: url),
-              let plan = try? JSONDecoder().decode(CashPlan.self, from: data) else { return CashPlan() }
-        return plan
+    static func load(from url: URL) -> LoadResult {
+        guard FileManager.default.fileExists(atPath: url.path) else { return .missing }
+        guard let data = try? Data(contentsOf: url) else { return .unreadable }
+        guard let plan = try? JSONDecoder().decode(CashPlan.self, from: data) else { return .corrupt }
+        return .loaded(plan)
+    }
+
+    /// Try again after the phone unlocks or the app becomes active.
+    func reloadIfUnavailable() {
+        guard isUnavailable else { return }
+        apply(Self.load(from: fileURL))
+    }
+
+    private func apply(_ result: LoadResult) {
+        switch result {
+        case .missing:
+            plan = CashPlan()
+            isUnavailable = false
+        case .loaded(let loaded):
+            plan = loaded
+            isUnavailable = false
+        case .corrupt:
+            // Keep the unreadable contents next to the new plan instead of overwriting them.
+            let backup = fileURL.deletingLastPathComponent().appendingPathComponent("plan.corrupt.json")
+            try? FileManager.default.removeItem(at: backup)
+            try? FileManager.default.moveItem(at: fileURL, to: backup)
+            plan = CashPlan()
+            isUnavailable = false
+        case .unreadable:
+            plan = CashPlan()
+            isUnavailable = true
+        }
     }
 
     func update(_ change: (inout CashPlan) -> Void) {
+        guard !isUnavailable else { return }
         change(&plan)
         save()
     }
@@ -55,6 +90,7 @@ final class PlanStore {
     }
 
     func deleteAll() {
+        guard !isUnavailable else { return }
         plan = CashPlan()
         try? FileManager.default.removeItem(at: fileURL)
         saveFailed = false

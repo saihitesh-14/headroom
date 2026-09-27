@@ -49,7 +49,9 @@ public enum Explainer {
         var groups: [String: Group] = [:]
         var order = 0
         for point in a.withPurchase where point.date <= a.purchaseLow.date {
-            for line in point.lines {
+            // On the day of the low, money in lands after the low, so it did not move the balance there.
+            let lines = point.date == a.purchaseLow.date ? point.lines.filter { !$0.isIncome } : point.lines
+            for line in lines {
                 let name = line.isPurchase ? capitalizedFirst(line.name) : line.name
                 let key = "\(line.isPurchase)|\(line.isIncome)|\(name)"
                 let signed = line.isIncome ? line.amount : -line.amount
@@ -84,6 +86,22 @@ public enum Explainer {
             }
         }
         return "No income in your plan through \(a.checkedThrough.shortText)"
+    }
+
+    /// A dip below the floor (or zero) that happens before the purchase date, which the
+    /// verdict alone would not mention. nil when there is none, or when the headline
+    /// already says the plan is short from the purchase date on.
+    public static func baselineWarningText(_ a: Analysis) -> String? {
+        guard let warning = a.baselineWarning, a.baselineLowFromPurchaseDate.amount >= a.floor else { return nil }
+        switch warning {
+        case .negative(let low) where low.date < a.purchase.date:
+            return "Before this purchase, your plan goes to \(low.amount.formatted) on \(low.date.shortText)."
+        case .belowFloor(let low) where low.date < a.purchase.date:
+            return "Before this purchase, your plan drops to \(low.amount.formatted) on \(low.date.shortText), "
+                + "below your \(a.floor.formatted) floor."
+        default:
+            return nil
+        }
     }
 
     /// Value for the "Earliest date that fits" row.

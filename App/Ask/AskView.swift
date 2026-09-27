@@ -22,7 +22,9 @@ struct AskView: View {
     var body: some View {
         NavigationStack(path: $path) {
             Group {
-                if isEmptyPlan {
+                if store.isUnavailable {
+                    unavailableState
+                } else if isEmptyPlan {
                     EmptyStateView(
                         onSetUp: { selectedTab = .plan },
                         onSample: { store.update { $0 = SamplePlan.make(today: today) } }
@@ -56,6 +58,23 @@ struct AskView: View {
             .padding(.bottom, Theme.Space.xxl)
         }
         .scrollDismissesKeyboard(.interactively)
+    }
+
+    /// The plan file exists but is protected until the iPhone is unlocked.
+    private var unavailableState: some View {
+        VStack(alignment: .leading, spacing: Theme.Space.s) {
+            Image(systemName: "lock.fill")
+                .font(.system(size: 36, weight: .medium))
+                .foregroundStyle(Theme.accent)
+            Text("Unlock your iPhone to open your plan")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(Theme.textPrimary)
+            Text("Your plan is protected while the phone is locked. It opens as soon as you unlock.")
+                .font(.body)
+                .foregroundStyle(Theme.textSecondary)
+        }
+        .padding(.horizontal, Theme.Space.xl)
+        .padding(.top, Theme.Space.xl)
     }
 
     // MARK: Spending room

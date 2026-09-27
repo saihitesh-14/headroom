@@ -41,7 +41,7 @@ struct SettingsView: View {
 
                 Section {
                     Label("No network requests", systemImage: "wifi.slash")
-                    Label("Stored only on this iPhone", systemImage: "iphone")
+                    Label("Never sent anywhere by Headroom", systemImage: "iphone")
                     Label("Protected while the phone is locked", systemImage: "lock.shield")
                 } header: {
                     Text("Privacy")

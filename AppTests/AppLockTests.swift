@@ -7,12 +7,14 @@ import Testing
 final class StubAuthenticator: Authenticator, @unchecked Sendable {
     var available = true
     var succeeds = true
+    var delay: Duration = .zero
     private(set) var prompts = 0
 
     func availability() -> String? { available ? nil : "Set a passcode on this iPhone to use the lock." }
 
     func authenticate(reason: String) async -> Bool {
         prompts += 1
+        if delay > .zero { try? await Task.sleep(for: delay) }
         return succeeds
     }
 }
@@ -76,6 +78,33 @@ struct AppLockTests {
         await lock.unlock()
         #expect(!lock.isLocked)
         #expect(auth.prompts == 2)
+    }
+
+    @Test("returning from the background prompts once; cancelling does not start a loop")
+    func noPromptLoop() async {
+        let auth = StubAuthenticator()
+        let lock = makeLock(auth)
+        lock.scenePhaseChanged(to: .background)
+        auth.succeeds = false                     // the user cancels Face ID
+        await lock.appBecameActive()              // background → active: prompt
+        await lock.appBecameActive()              // Face ID sheet closes: inactive → active, no new prompt
+        #expect(auth.prompts == 1)
+        #expect(lock.isLocked)
+        await lock.unlock()                       // the Unlock button still works
+        #expect(auth.prompts == 2)
+    }
+
+    @Test("two unlock requests at once show one prompt")
+    func noDoublePrompt() async {
+        let auth = StubAuthenticator()
+        auth.delay = .milliseconds(100)
+        let lock = makeLock(auth)
+        lock.scenePhaseChanged(to: .background)
+        async let first: Void = lock.unlock()
+        async let second: Void = lock.unlock()
+        _ = await (first, second)
+        #expect(auth.prompts == 1)
+        #expect(!lock.isLocked)
     }
 
     @Test("the setting is remembered")
