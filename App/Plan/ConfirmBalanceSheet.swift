@@ -19,12 +19,7 @@ struct ConfirmBalanceSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    LabeledContent("Balance") {
-                        TextField("Balance", text: $amountText, prompt: Text("0.00"))
-                            .keyboardType(.numbersAndPunctuation)
-                            .multilineTextAlignment(.trailing)
-                            .font(Theme.money(.body, weight: .regular))
-                    }
+                    CurrencyField(label: "Balance", text: $amountText, allowsNegative: true)
                 } footer: {
                     if showError {
                         Text("Enter the balance your bank shows, like 1,000 or 1000.00.")

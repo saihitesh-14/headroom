@@ -6,12 +6,15 @@ struct HeadroomApp: App {
     @State private var store: PlanStore
 
     init() {
-        if ProcessInfo.processInfo.arguments.contains("-uiTestSamplePlan") {
-            // UI tests run against a throwaway file holding the sample plan, confirmed today.
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-uiTestSamplePlan") || arguments.contains("-uiTestEmptyPlan") {
+            // UI tests run against a throwaway file: the sample plan confirmed today, or nothing.
             let url = URL.temporaryDirectory.appending(path: "uitest-plan.json")
             try? FileManager.default.removeItem(at: url)
             let store = PlanStore(fileURL: url)
-            store.update { $0 = SamplePlan.make(today: .today()) }
+            if arguments.contains("-uiTestSamplePlan") {
+                store.update { $0 = SamplePlan.make(today: .today()) }
+            }
             _store = State(initialValue: store)
         } else {
             _store = State(initialValue: PlanStore())

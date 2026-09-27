@@ -17,13 +17,7 @@ struct ConfirmCard: View {
                         TextField("Item", text: $draft.item, prompt: Text("Laptop"))
                             .multilineTextAlignment(.trailing)
                     }
-                    LabeledContent("Price") {
-                        TextField("Price", text: $draft.priceText, prompt: Text("0.00"))
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .font(Theme.money(.body, weight: .regular))
-                            .accessibilityIdentifier("price")
-                    }
+                    CurrencyField(label: "Price", text: $draft.priceText, identifier: "price")
                     DatePicker("Date", selection: $draft.date, displayedComponents: .date)
                 } header: {
                     Text(draft.source == .onDeviceAI ? "Read by on-device AI" : "Read by the built-in parser")

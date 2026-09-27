@@ -19,12 +19,7 @@ struct EventEditor: View {
                             .multilineTextAlignment(.trailing)
                             .textInputAutocapitalization(.words)
                     }
-                    LabeledContent("Amount") {
-                        TextField("Amount", text: $draft.amountText, prompt: Text("0.00"))
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .font(Theme.money(.body, weight: .regular))
-                    }
+                    CurrencyField(label: "Amount", text: $draft.amountText)
                 } footer: {
                     if showErrors, !draft.errors.isEmpty {
                         Text(draft.errors.joined(separator: " "))

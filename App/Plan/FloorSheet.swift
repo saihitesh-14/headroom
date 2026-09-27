@@ -12,12 +12,7 @@ struct FloorSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    LabeledContent("Keep at least") {
-                        TextField("Cash floor", text: $amountText, prompt: Text("0.00"))
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .font(Theme.money(.body, weight: .regular))
-                    }
+                    CurrencyField(label: "Keep at least", text: $amountText)
                 } footer: {
                     if showError {
                         Text("Enter an amount, like 200. $0 is fine.")
