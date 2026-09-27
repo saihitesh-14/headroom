@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Engine tests
+        run: swift test --package-path Packages/HeadroomCore
+
+      - name: Build app for the iOS Simulator
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project Headroom.xcodeproj \
+            -scheme Headroom \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO | tail -n 25
+
+      - name: No network code
+        run: |
+          if grep -rnE 'URLSession|URLRequest|NWConnection|AsyncImage|WKWebView|"https?://' App Packages/HeadroomCore/Sources; then
+            echo "::error::Network code found. Headroom makes no network requests."
+            exit 1
+          fi
+          echo "No network code."
