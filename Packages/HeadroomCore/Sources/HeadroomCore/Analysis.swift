@@ -74,6 +74,35 @@ public enum RoomOutcome: Hashable, Sendable {
     case room(Money, through: LocalDate)
 }
 
+/// Everything the home screen draws: the spending room and the baseline path it comes from.
+public struct RoomDetail: Hashable, Sendable {
+    /// How much could be spent today and stay at or above the floor through `through`.
+    public let room: Money
+    /// today + 61.
+    public let through: LocalDate
+    /// Lowest point without any purchase, today through `through`.
+    public let low: Low
+    public let floor: Money
+    /// The confirmed balance, before anything scheduled today.
+    public let start: Money
+    /// The baseline path, today through `through`.
+    public let points: [DayPoint]
+
+    public init(room: Money, through: LocalDate, low: Low, floor: Money, start: Money, points: [DayPoint]) {
+        self.room = room
+        self.through = through
+        self.low = low
+        self.floor = floor
+        self.start = start
+        self.points = points
+    }
+}
+
+public enum RoomDetailOutcome: Hashable, Sendable {
+    case needsInfo([MissingInfo])
+    case room(RoomDetail)
+}
+
 extension CashEngine {
     /// What happens to checking if `purchase` is made on its date.
     public static func analyze(_ plan: CashPlan, purchase: Purchase, today: LocalDate) -> Outcome {
@@ -118,6 +147,17 @@ extension CashEngine {
         let horizon = today.adding(days: horizonDays)
         let low = lowest(project(plan, today: today, through: horizon, purchase: nil))
         return .room(max(.zero, low.amount - floor), through: horizon)
+    }
+
+    /// `spendingRoom` plus the path and the low behind it, for drawing the home screen.
+    public static func roomDetail(_ plan: CashPlan, today: LocalDate) -> RoomDetailOutcome {
+        let missing = planMissing(plan, today: today)
+        guard missing.isEmpty, let floor = plan.floor, let balance = plan.balance else { return .needsInfo(missing) }
+        let horizon = today.adding(days: horizonDays)
+        let points = project(plan, today: today, through: horizon, purchase: nil)
+        let low = lowest(points)
+        return .room(RoomDetail(room: max(.zero, low.amount - floor), through: horizon, low: low,
+                                floor: floor, start: balance.amount, points: points))
     }
 
     private static func planMissing(_ plan: CashPlan, today: LocalDate) -> [MissingInfo] {

@@ -204,3 +204,58 @@ struct AnalysisTests {
         #expect(CashEngine.spendingRoom(CashPlan(), today: today) == .needsInfo([.balance, .floor, .noEvents]))
     }
 }
+
+/// Unwraps a room detail or records a failure.
+func roomDetail(_ plan: CashPlan, sourceLocation: SourceLocation = #_sourceLocation) -> RoomDetail? {
+    if case .room(let detail) = CashEngine.roomDetail(plan, today: today) { return detail }
+    Issue.record("Expected a room detail", sourceLocation: sourceLocation)
+    return nil
+}
+
+@Suite("Room detail")
+struct RoomDetailTests {
+    @Test("room matches spendingRoom for every fixture", arguments: [
+        samplePlanP1(), workedExamplePlan(), rentAndPayPlan(pay: 900), rentAndPayPlan(pay: 800),
+        makePlan(balance: dollars(500), floor: dollars(200), bill("Rent", 400, .once(day(3)))),
+    ])
+    func roomMatchesSpendingRoom(plan: CashPlan) throws {
+        let detail = try #require(roomDetail(plan))
+        #expect(CashEngine.spendingRoom(plan, today: today) == .room(detail.room, through: detail.through))
+    }
+
+    @Test("the sample plan: $705 low on Mon Oct 12, starting from $1,000 (P1)")
+    func samplePlan() throws {
+        let detail = try #require(roomDetail(samplePlanP1()))
+        #expect(detail.room == dollars(505))
+        #expect(detail.low == Low(amount: dollars(705), date: d(2026, 10, 12)))
+        #expect(detail.start == dollars(1_000))
+        #expect(detail.floor == dollars(200))
+        #expect(detail.through == d(2026, 11, 26))
+        #expect(detail.points == CashEngine.project(samplePlanP1(), today: today, through: d(2026, 11, 26), purchase: nil))
+        #expect(detail.points.count == 62)
+    }
+
+    @Test("start is the confirmed balance, before today's bills")
+    func startIsConfirmedBalance() throws {
+        let plan = makePlan(balance: dollars(500), floor: dollars(0), bill("Rent", 400, .once(today)))
+        let detail = try #require(roomDetail(plan))
+        #expect(detail.start == dollars(500))
+        #expect(detail.low == Low(amount: dollars(100), date: today))
+    }
+
+    @Test("a plan below its floor has no room, and the low says where")
+    func noRoom() throws {
+        let plan = makePlan(balance: dollars(500), floor: dollars(200), bill("Rent", 400, .once(day(3))))
+        let detail = try #require(roomDetail(plan))
+        #expect(detail.room == .zero)
+        #expect(detail.low == Low(amount: dollars(100), date: d(2026, 9, 29)))
+    }
+
+    @Test("missing inputs are reported the same way as spendingRoom")
+    func needsInfo() {
+        var stale = samplePlanP1()
+        stale.balance?.asOf = d(2026, 9, 25)
+        #expect(CashEngine.roomDetail(stale, today: today) == .needsInfo([.balanceNotConfirmedToday(lastConfirmed: d(2026, 9, 25))]))
+        #expect(CashEngine.roomDetail(CashPlan(), today: today) == .needsInfo([.balance, .floor, .noEvents]))
+    }
+}

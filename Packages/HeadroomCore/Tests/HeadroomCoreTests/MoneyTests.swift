@@ -32,4 +32,45 @@ struct MoneyTests {
     @Test func maximumIsTenMillionDollars() {
         #expect(Money.maximum == Money.dollars(10_000_000))
     }
+
+    @Test("display text uses a real minus sign, and formatted keeps the hyphen")
+    func displayTextNegative() {
+        let rent = Money(cents: -45_000)
+        #expect(rent.displayText == "\u{2212}$450")
+        #expect(rent.displayText(signed: true) == "\u{2212}$450")
+        #expect(rent.formatted == "-$450")
+        #expect(rent.spokenText == "minus $450")
+    }
+
+    @Test("signed display text and speech say plus for money in")
+    func displayTextSigned() {
+        let pay = Money.dollars(800)
+        #expect(pay.displayText == "$800")
+        #expect(pay.displayText(signed: true) == "+$800")
+        #expect(pay.spokenText == "$800")
+        #expect(pay.spokenText(signed: true) == "plus $800")
+        #expect(Money.zero.displayText(signed: true) == "$0")
+        #expect(Money.zero.spokenText(signed: true) == "$0")
+        #expect(Money(cents: -45_000).spokenText(signed: true) == "minus $450")
+    }
+
+    @Test("forced cents show two digits, and speech drops zero cents")
+    func displayTextForceCents() {
+        let phone = Money.dollars(45)
+        #expect(phone.displayText(forceCents: true) == "$45.00")
+        #expect(phone.displayText == "$45")
+        #expect(phone.spokenText == "$45")
+        #expect(Money(cents: -4_500).displayText(forceCents: true) == "\u{2212}$45.00")
+        #expect(Money(cents: 5).displayText(forceCents: true) == "$0.05")
+        #expect(Money(cents: 124_999).displayText == "$1,249.99")
+        #expect(Money(cents: 124_999).displayText(signed: true, forceCents: true) == "+$1,249.99")
+        #expect(Money(cents: 124_999).spokenText == "$1,249.99")
+    }
+
+    @Test("display text reads as a string in interpolation, not a function")
+    func displayTextInterpolates() {
+        let floor = Money.dollars(200)
+        #expect("Floor \(floor.displayText)" == "Floor $200")
+        #expect("\(Money(cents: -500).spokenText)" == "minus $5")
+    }
 }

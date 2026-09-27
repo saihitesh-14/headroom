@@ -70,6 +70,29 @@ struct LocalDateTests {
         #expect(sep26.description == "2026-09-26")
     }
 
+    @Test("new sentences keep a date on one line with no-break spaces")
+    func shortTextNoBreak() {
+        #expect(LocalDate(year: 2026, month: 10, day: 2)!.shortTextNoBreak == "Fri\u{00A0}Oct\u{00A0}2")
+        #expect(sep26.shortTextNoBreak == "Sat\u{00A0}Sep\u{00A0}26")
+        #expect(sep26.shortText == "Sat Sep 26")
+    }
+
+    @Test("full weekday names for labels", arguments: [
+        (26, "Saturday"), (27, "Sunday"), (28, "Monday"), (29, "Tuesday"), (30, "Wednesday"),
+    ])
+    func weekdayName(day: Int, expected: String) {
+        #expect(LocalDate(year: 2026, month: 9, day: day)!.weekdayName == expected)
+    }
+
+    @Test("VoiceOver dates spell out the weekday and month")
+    func spokenText() {
+        #expect(LocalDate(year: 2026, month: 10, day: 2)!.spokenText == "Friday, October 2")
+        #expect(LocalDate(year: 2026, month: 10, day: 13)!.spokenText == "Tuesday, October 13")
+        #expect(LocalDate(year: 2027, month: 1, day: 1)!.spokenText == "Friday, January 1")
+        #expect(LocalDate(year: 2026, month: 12, day: 31)!.spokenText == "Thursday, December 31")
+        #expect(LocalDate(year: 2026, month: 5, day: 3)!.spokenText == "Sunday, May 3")
+    }
+
     @Test func codableAsISODateString() throws {
         let data = try JSONEncoder().encode(sep26)
         #expect(String(decoding: data, as: UTF8.self) == "\"2026-09-26\"")

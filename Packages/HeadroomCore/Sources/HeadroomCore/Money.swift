@@ -22,17 +22,39 @@ public struct Money: Hashable, Comparable, Sendable, CustomStringConvertible {
 
     /// "$700", "$1,249.99", "-$450", "$0.05". Whole dollars drop the cents.
     public var formatted: String {
-        let magnitude = cents.magnitude
-        let dollars = magnitude / 100
+        (cents < 0 ? "-" : "") + Self.magnitudeText(cents.magnitude, forceCents: false)
+    }
+
+    public var description: String { formatted }
+
+    /// For display: "\u{2212}$750" with a real minus sign (U+2212). Whole dollars drop the cents.
+    public var displayText: String { displayText() }
+
+    /// For display. `signed` adds "+" to amounts above zero ("+$800"). `forceCents`
+    /// always shows two cent digits ("$45.00"), for columns where any row has cents.
+    public func displayText(signed: Bool = false, forceCents: Bool = false) -> String {
+        let sign = cents < 0 ? "\u{2212}" : (signed && cents > 0 ? "+" : "")
+        return sign + Self.magnitudeText(cents.magnitude, forceCents: forceCents)
+    }
+
+    /// For VoiceOver: "minus $750", "$700". The sign is always a word.
+    public var spokenText: String { spokenText(signed: false) }
+
+    /// For VoiceOver. `signed` says "plus" for amounts above zero ("plus $800").
+    public func spokenText(signed: Bool) -> String {
+        let sign = cents < 0 ? "minus " : (signed && cents > 0 ? "plus " : "")
+        return sign + Self.magnitudeText(cents.magnitude, forceCents: false)
+    }
+
+    /// "$1,249.99", "$700", or "$700.00" with `forceCents`. Never has a sign.
+    private static func magnitudeText(_ magnitude: UInt, forceCents: Bool) -> String {
         let remainder = magnitude % 100
-        var text = (cents < 0 ? "-$" : "$") + Self.grouped(dollars)
-        if remainder != 0 {
+        var text = "$" + grouped(magnitude / 100)
+        if remainder != 0 || forceCents {
             text += "." + (remainder < 10 ? "0" : "") + String(remainder)
         }
         return text
     }
-
-    public var description: String { formatted }
 
     private static func grouped(_ value: UInt) -> String {
         let digits = Array(String(value))

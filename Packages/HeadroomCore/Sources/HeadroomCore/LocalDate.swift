@@ -86,6 +86,25 @@ public struct LocalDate: Hashable, Comparable, Sendable, CustomStringConvertible
         "\(Self.monthNames[month - 1]) \(day)"
     }
 
+    private static let weekdayFullNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    private static let monthFullNames = ["January", "February", "March", "April", "May", "June",
+                                         "July", "August", "September", "October", "November", "December"]
+
+    /// "Sat Sep 26" joined with no-break spaces (U+00A0), so the date never breaks across lines.
+    public var shortTextNoBreak: String {
+        "\(Self.weekdayNames[weekday - 1])\u{00A0}\(Self.monthNames[month - 1])\u{00A0}\(day)"
+    }
+
+    /// "Saturday"
+    public var weekdayName: String {
+        Self.weekdayFullNames[weekday - 1]
+    }
+
+    /// "Saturday, September 26", for VoiceOver.
+    public var spokenText: String {
+        "\(weekdayName), \(Self.monthFullNames[month - 1]) \(day)"
+    }
+
     /// "2026-09-26"
     public var description: String {
         let m = month < 10 ? "0\(month)" : "\(month)"
