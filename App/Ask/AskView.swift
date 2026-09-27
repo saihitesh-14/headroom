@@ -9,6 +9,8 @@ struct AskView: View {
     @State private var question = ""
     @State private var confirm: ConfirmRequest?
     @State private var path: [Purchase] = []
+    /// True from the moment the Confirm sheet opens until it has finished closing.
+    @State private var confirmOnScreen = false
     @State private var confirmingBalance = false
     @State private var isReading = false
     @AppStorage(OnDeviceAI.settingKey) private var useOnDeviceAI = true
@@ -36,8 +38,14 @@ struct AskView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(Theme.canvas.ignoresSafeArea())
             .navigationTitle("Headroom")
-            .navigationDestination(for: Purchase.self) { ResultView(initialPurchase: $0) }
-            .sheet(item: $confirm) { request in
+            .navigationDestination(for: Purchase.self) {
+                // Result opens under the closing sheet; its measurement waits until it is in view.
+                ResultView(initialPurchase: $0, isCovered: confirmOnScreen)
+            }
+            .onChange(of: confirm?.id) { _, id in
+                if id != nil { confirmOnScreen = true }
+            }
+            .sheet(item: $confirm, onDismiss: { confirmOnScreen = false }) { request in
                 ConfirmCard(draft: request.draft, note: request.note) { purchase in
                     confirm = nil
                     path.append(purchase)
