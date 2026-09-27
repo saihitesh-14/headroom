@@ -2,10 +2,6 @@ import Foundation
 import Testing
 @testable import HeadroomCore
 
-func d(_ year: Int, _ month: Int, _ day: Int) -> LocalDate {
-    LocalDate(year: year, month: month, day: day)!
-}
-
 @Suite("Schedule")
 struct ScheduleTests {
     @Test("monthly on the 31st lands on the last day of short months (S1)")
