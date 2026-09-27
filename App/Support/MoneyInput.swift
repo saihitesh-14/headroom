@@ -24,10 +24,11 @@ enum MoneyInput {
         return money <= .maximum ? money : nil
     }
 
-    /// Like `parse`, but a checking balance may start with "-" when overdrawn.
+    /// Like `parse`, but a checking balance may start with "-" when overdrawn. A real minus
+    /// sign (U+2212, as the app displays it) is accepted too, so a pasted amount still reads.
     static func parseBalance(_ text: String) -> Money? {
         let trimmed = text.trimmingCharacters(in: .whitespaces)
-        guard trimmed.hasPrefix("-") else { return parse(trimmed) }
+        guard trimmed.hasPrefix("-") || trimmed.hasPrefix("\u{2212}") else { return parse(trimmed) }
         return parse(String(trimmed.dropFirst())).map { -$0 }
     }
 

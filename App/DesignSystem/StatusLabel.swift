@@ -1,7 +1,7 @@
 import HeadroomCore
 import SwiftUI
 
-/// The result state, always shown as icon + words (never color alone).
+/// The result state, always shown as glyph shape + words + tint (never color alone).
 enum ResultStatus: Equatable {
     case fits, crossesFloor, goesNegative, needsInfo
 
@@ -15,12 +15,13 @@ enum ResultStatus: Equatable {
         }
     }
 
-    var symbol: String {
+    /// The verdict glyph: a step that stays above, dips through, or falls below the datum.
+    var glyph: VerdictGlyph.Kind {
         switch self {
-        case .fits: "checkmark.circle.fill"
-        case .crossesFloor: "exclamationmark.triangle.fill"
-        case .goesNegative: "xmark.octagon.fill"
-        case .needsInfo: "questionmark.circle.fill"
+        case .fits: .stays
+        case .crossesFloor: .dips
+        case .goesNegative: .belowZero
+        case .needsInfo: .needsInfo
         }
     }
 
@@ -34,21 +35,21 @@ enum ResultStatus: Equatable {
     }
 }
 
+/// The verdict line: the verdict glyph, then the headline in Overpass. A header for VoiceOver.
 struct StatusLabel: View {
     let status: ResultStatus
     let title: String
 
     var body: some View {
-        Label {
+        HStack(alignment: .firstTextBaseline, spacing: Theme.Space.s) {
+            VerdictGlyph(kind: status.glyph)
             Text(title)
-                .font(.title3.weight(.semibold))
+                .overpass(.verdict)
                 .foregroundStyle(Theme.textPrimary)
-        } icon: {
-            Image(systemName: status.symbol)
-                .foregroundStyle(status.tint)
-                .symbolRenderingMode(.hierarchical)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
         .accessibilityIdentifier("verdict")
     }
 }

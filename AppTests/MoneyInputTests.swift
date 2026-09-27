@@ -33,6 +33,15 @@ struct MoneyInputTests {
         #expect(MoneyInput.editableText(Money(cents: -4_550)) == "-45.50")
     }
 
+    @Test("a pasted display amount with a real minus sign (U+2212) reads like a hyphen")
+    func unicodeMinus() {
+        #expect(MoneyInput.parseBalance("\u{2212}45.50") == Money(cents: -4_550))
+        #expect(MoneyInput.parseBalance("\u{2212}$1,200") == Money(cents: -120_000))
+        #expect(MoneyInput.parseBalance("\u{2212}\u{2212}5") == nil)
+        #expect(MoneyInput.parseBalance("-\u{2212}5") == nil)
+        #expect(MoneyInput.parse("\u{2212}5") == nil)
+    }
+
     @Test func editableTextHasNoSymbolOrCommas() {
         #expect(MoneyInput.editableText(Money(cents: 124_999)) == "1249.99")
         #expect(MoneyInput.editableText(Money(cents: 70_000)) == "700")

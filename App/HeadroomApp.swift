@@ -7,6 +7,7 @@ struct HeadroomApp: App {
     @State private var lock: AppLock
 
     init() {
+        Typography.register()
         let arguments = ProcessInfo.processInfo.arguments
         if arguments.contains("-uiTestSamplePlan") || arguments.contains("-uiTestEmptyPlan") {
             // UI tests run against a throwaway file (the sample plan confirmed today, or nothing)
