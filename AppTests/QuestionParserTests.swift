@@ -18,9 +18,12 @@ struct QuestionParserTests {
         #expect(q.price == .dollars(700))
         #expect(q.item == "laptop")
         #expect(q.source == .builtIn)
-        let date = try? #require(q.date)
-        #expect(date?.weekday == 6)
-        if let date { #expect((1...13).contains(today.days(until: date))) }
+        guard let date = q.date else {
+            Issue.record("expected a date")
+            return
+        }
+        #expect(date.weekday == 6)
+        #expect((1...13).contains(today.days(until: date)))
     }
 
     @Test("prices with commas and cents", arguments: [
