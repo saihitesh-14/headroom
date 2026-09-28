@@ -1,8 +1,9 @@
 import HeadroomCore
 import SwiftUI
 
-/// The what-if controls docked above the tab bar on Result (docs/REDESIGN-SPEC.md 5.3):
-/// a date capsule that opens a calendar, and a price capsule. Both are Liquid Glass.
+/// The what-if controls on Result (docs/REDESIGN-SPEC.md 5.3), docked above the tab bar
+/// except at accessibility sizes: a date capsule that opens a calendar, and a price
+/// capsule. Both are Liquid Glass.
 ///
 /// A typed price is committed on submit, on focus loss, or after a 400 ms pause, so the
 /// verdict and its haptic never flip mid-typing. An invalid price keeps the last valid
@@ -14,13 +15,16 @@ struct WhatIfBar: View {
     @State private var priceError = false
     @State private var showDate = false
     @FocusState private var priceFocused: Bool
+    /// Docked above the tab bar, or in the page at accessibility sizes.
+    let docked: Bool
     @Environment(\.colorSchemeContrast) private var contrast
 
     static let priceErrorText = "Enter a price, like 700 or 49.99."
 
-    init(purchase: Binding<Purchase>, today: LocalDate) {
+    init(purchase: Binding<Purchase>, today: LocalDate, docked: Bool = true) {
         _purchase = purchase
         self.today = today
+        self.docked = docked
         _priceText = State(initialValue: MoneyInput.editableText(purchase.wrappedValue.price))
     }
 
@@ -41,8 +45,9 @@ struct WhatIfBar: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .scenePadding(.horizontal)
-        .padding(.vertical, Theme.Space.s)
+        // In the page, the page's own margins apply.
+        .scenePadding(docked ? .horizontal : [])
+        .padding(docked ? .vertical : [], Theme.Space.s)
         .task(id: priceText) {
             do { try await Task.sleep(for: .milliseconds(400)) } catch { return }
             commit()

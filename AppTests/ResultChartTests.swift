@@ -198,4 +198,12 @@ struct ResultScreenTests {
         #expect(labels.contains("Rent, Oct 2, minus $750"))
         #expect(labels.contains("Paycheck, Oct 1, plus $800"))
     }
+
+    @Test("the what-if bar docks above the tab bar, and sits in the page at accessibility sizes")
+    func whatIfPlacement() {
+        #expect(ResultView.docksWhatIfBar(at: .large))
+        #expect(ResultView.docksWhatIfBar(at: .xxxLarge))
+        #expect(!ResultView.docksWhatIfBar(at: .accessibility1))
+        #expect(!ResultView.docksWhatIfBar(at: .accessibility5))
+    }
 }

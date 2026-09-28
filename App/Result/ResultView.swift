@@ -56,9 +56,11 @@ struct ResultView: View {
                 switch outcome {
                 case .needsInfo(let missing):
                     needsInfo(missing)
+                    inlineWhatIf
                 case .analyzed(let analysis):
                     verdict(analysis)
                     earliestFit(analysis)
+                    inlineWhatIf
                     chart(analysis)
                     ledger(analysis)
                     assumptions
@@ -71,7 +73,9 @@ struct ResultView: View {
         .scrollDismissesKeyboard(.interactively)
         .scrollEdgeEffectStyle(.soft, for: .top)
         .background(Theme.canvas.ignoresSafeArea())
-        .safeAreaBar(edge: .bottom) { WhatIfBar(purchase: $purchase, today: today) }
+        .safeAreaBar(edge: .bottom) {
+            if Self.docksWhatIfBar(at: size) { WhatIfBar(purchase: $purchase, today: today) }
+        }
         .navigationTitle(displayName)
         .navigationSubtitle(Explainer.purchaseLine(purchase))
         .navigationBarTitleDisplayMode(.inline)
@@ -97,6 +101,14 @@ struct ResultView: View {
         }
         .task(id: MeasureKey(purchase: purchase, isCovered: isCovered)) { await playMeasurement() }
         .sheet(isPresented: $confirmingBalance) { ConfirmBalanceSheet() }
+    }
+
+    /// The what-if bar docks above the tab bar. At accessibility sizes its capsules stack
+    /// and, docked, would cover the verdict's next step, so it sits in the page instead.
+    static func docksWhatIfBar(at size: DynamicTypeSize) -> Bool { !size.isAccessibilitySize }
+
+    @ViewBuilder private var inlineWhatIf: some View {
+        if !Self.docksWhatIfBar(at: size) { WhatIfBar(purchase: $purchase, today: today, docked: false) }
     }
 
     private var displayName: String {
@@ -254,6 +266,7 @@ struct ResultView: View {
                     Text("Confirm balance").foregroundStyle(Theme.onAccent)
                 }
                 .buttonStyle(.glassProminent)
+                .controlSize(.large)
             }
         }
     }

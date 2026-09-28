@@ -34,6 +34,11 @@ extension SmokeTests {
         XCTAssertTrue(whatIf.waitForExistence(timeout: 5))
         XCTAssertEqual(whatIf.label, "Price")
 
+        // At accessibility sizes the bar sits in the page under the verdict, so scroll to it.
+        for _ in 0..<4 where !whatIf.isHittable {
+            app.scrollViews.firstMatch.swipeUp(velocity: .slow)
+        }
+
         // A price that is not an amount keeps the last one analyzed and says so under the bar.
         whatIf.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
         whatIf.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 6) + "0")

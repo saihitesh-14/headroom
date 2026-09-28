@@ -105,13 +105,11 @@ enum ChartAxes {
         }
     }
 
-    /// The staff on the trailing edge: a tick and an amount at each step, in cents.
+    /// The staff on the trailing edge: an amount at each step, in cents. No tick: a short
+    /// dash just before "$500" reads as a minus sign, whatever the spacing.
     @AxisContentBuilder
     static func staff(_ values: [Money]) -> some AxisContent {
         AxisMarks(position: .trailing, values: values.map(\.cents)) { value in
-            AxisTick(length: 7, stroke: StrokeStyle(lineWidth: 1))
-                .foregroundStyle(Theme.chartBaseline)
-            // Spaced clear of the tick, so "$500" never reads as a negative amount.
             AxisValueLabel(horizontalSpacing: 10) {
                 InstrumentLabel(value.as(Int.self).map { Money(cents: $0).displayText } ?? "")
             }
