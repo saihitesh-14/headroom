@@ -6,11 +6,14 @@ import SwiftUI
 /// without the purchase over the decision window, the floor as the datum, and clearance
 /// measured at true scale at the purchase low. Plots whole cents (Int) against a day index.
 ///
-/// `peel` (0 or 1) lays the With line on the Without line or at its engine path, and
+/// `peel` lays the With line on the Without line (0) or at its engine path (1), and
 /// `measured` closes or opens the clearance mark; the parent animates both (section 7).
-struct CashChart: View {
+/// The chart is Animatable in `peel`, so SwiftUI redraws every frame of the peel and the
+/// below-floor fill is cut from the same line each time. Left to Charts, the line and the
+/// fill would each tween on their own, and the fill ran ahead of the line.
+struct CashChart: View, Animatable {
     let analysis: Analysis
-    let peel: Double
+    var peel: Double
     let measured: Bool
 
     private let model: ResultChartModel
@@ -29,7 +32,16 @@ struct CashChart: View {
         tint = ResultStatus(analysis).tint
     }
 
+    nonisolated var animatableData: Double {
+        get { peel }
+        set { peel = newValue }
+    }
+
     private var selectedDay: Int? { selectedX.map(model.day(at:)) }
+
+    /// "Floor $200" and the ring's label sit in the plot, except at accessibility sizes, where
+    /// they would cover the ruler and the lines. ResultView then states both under the chart.
+    private var labelsInPlot: Bool { !size.isAccessibilitySize }
 
     /// Half the LowRing: 11 pt, or 12 pt with Bold Text.
     private var ringRadius: CGFloat { legibility == .bold ? 6 : 5.5 }
@@ -74,7 +86,9 @@ struct CashChart: View {
                 .foregroundStyle(Theme.textPrimary)
                 .lineStyle(StrokeStyle(lineWidth: 1.5, lineCap: .round, dash: [6, 3]))
                 .annotation(position: model.floorLabelBelow ? .bottom : .top, alignment: .trailing, spacing: 3) {
-                    InstrumentLabel("Floor \(analysis.floor.displayText)", pad: CGSize(width: 3, height: 0))
+                    if labelsInPlot {
+                        InstrumentLabel("Floor \(analysis.floor.displayText)", pad: CGSize(width: 3, height: 0))
+                    }
                 }
 
             RuleMark(x: .value("Buy", model.purchaseX))
@@ -95,14 +109,16 @@ struct CashChart: View {
                 .symbol { LowRing(tint: tint).opacity(measured ? 1 : 0) }
             // The ring's label rides an invisible point: Charts ignores the annotation position
             // of a mark drawn with a custom symbol view. The spacing clears the ring's radius.
-            PointMark(x: .value("Day", model.lowX), y: .value("Low", model.low))
-                .symbolSize(0)
-                .annotation(position: model.low < model.floor ? .bottom : .top, spacing: 5 + ringRadius,
-                            overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
-                    InstrumentLabel(Explainer.lowMarker(analysis), role: .instrumentStrong,
-                                    color: Theme.textPrimary, pad: CGSize(width: 2, height: 2))
-                        .opacity(measured ? 1 : 0)
-                }
+            if labelsInPlot {
+                PointMark(x: .value("Day", model.lowX), y: .value("Low", model.low))
+                    .symbolSize(0)
+                    .annotation(position: model.low < model.floor ? .bottom : .top, spacing: 5 + ringRadius,
+                                overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
+                        InstrumentLabel(Explainer.lowMarker(analysis), role: .instrumentStrong,
+                                        color: Theme.textPrimary, pad: CGSize(width: 2, height: 2))
+                            .opacity(measured ? 1 : 0)
+                    }
+            }
 
             if let selectedX, let selectedDay {
                 RuleMark(x: .value("Selected", min(max(selectedX, 0), model.xDomain.upperBound)))

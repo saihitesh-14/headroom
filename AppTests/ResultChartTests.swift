@@ -51,6 +51,15 @@ struct ResultChartTests {
         #expect(ResultChartModel(try analysis(on: date(10, 16))).floorLabelBelow)
     }
 
+    @Test("at accessibility sizes the low and the floor move from the plot to a caption")
+    func accessibilityCaption() throws {
+        let model = ResultChartModel(try analysis())
+        #expect(model.caption(accessibilitySize: false) == nil)
+        #expect(model.caption(accessibilitySize: true) == "Lowest $5 on Tue\u{00A0}Oct\u{00A0}13. Floor $200.")
+        #expect(ResultChartModel(try analysis(price: 800)).caption(accessibilitySize: true)
+            == "Lowest \u{2212}$95 on Tue\u{00A0}Oct\u{00A0}13. Floor $200.")
+    }
+
     @Test("below zero, the clearance is measured from the $0 rule")
     func datumBelowZero() throws {
         let model = ResultChartModel(try analysis(price: 800))
@@ -64,6 +73,20 @@ struct ResultChartTests {
         #expect(model.withShown(peel: 0) == model.baseline)
         #expect(model.withShown(peel: 1) == model.withPurchase)
         #expect(model.withShown(peel: 0).map(\.x) == model.withPurchase.map(\.x))
+
+        // Part way through, every point lies between the two engine states, in whole cents.
+        for (shown, (base, with)) in zip(model.withShown(peel: 0.3), zip(model.baseline, model.withPurchase)) {
+            let (lower, upper) = (min(base.amount, with.amount), max(base.amount, with.amount))
+            #expect(shown.amount >= lower && shown.amount <= upper)
+        }
+    }
+
+    @Test("the chart redraws each frame of the peel, so the fill and the With line share one path")
+    func peelIsAnimated() throws {
+        var chart = CashChart(analysis: try analysis(), peel: 0, measured: false)
+        #expect(chart.animatableData == 0)
+        chart.animatableData = 0.4
+        #expect(chart.peel == 0.4)
     }
 
     @Test("the day ruler labels today, month starts and the window end")

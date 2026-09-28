@@ -44,9 +44,11 @@ struct ConfirmCard: View {
                     } label: {
                         VStack(alignment: .leading) {
                             Text("Date")
+                            // Ink, not Graphite: at the medium detent the rows are glass over
+                            // the dimmed screen, where Graphite falls to 4.2:1.
                             Text(LocalDate(draft.date).weekdayName)
                                 .font(.footnote)
-                                .foregroundStyle(Theme.textSecondary)
+                                .foregroundStyle(Theme.textPrimary)
                         }
                     }
                 } header: {

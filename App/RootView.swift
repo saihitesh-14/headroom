@@ -27,18 +27,12 @@ struct RootView: View {
         .tint(Theme.accent)
         .environment(\.today, today)
         .accessibilityHidden(covered)
-        .overlay {
-            ZStack {
-                if covered {
-                    PrivacyCover(isLocked: lock.isLocked, biometry: lock.biometry) {
-                        Task { await lock.unlock() }
-                    }
-                    // Appears at once, so the app-switcher snapshot never catches it half drawn;
-                    // fades out on unlock.
-                    .transition(.asymmetric(insertion: .identity, removal: .opacity))
-                }
-            }
-            .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: covered)
+        // The cover draws in a window above this one, so it also covers any open sheet,
+        // popover or dialog. It appears at once, so the app-switcher snapshot never catches
+        // it half drawn, and fades out on unlock.
+        .background {
+            PrivacyCoverPresenter(lock: lock, covered: covered, animated: !reduceMotion)
+                .accessibilityHidden(true)
         }
         .onChange(of: scenePhase) { _, phase in
             lock.scenePhaseChanged(to: phase)
@@ -62,46 +56,4 @@ struct RootView: View {
 
 enum AppTab: Hashable {
     case ask, plan, settings
-}
-
-/// The lock cover and app-switcher snapshot (docs/REDESIGN-SPEC.md 5.7): the wordmark on the
-/// datum, with no amounts. When locked, it says so and offers Unlock (retry stays manual).
-private struct PrivacyCover: View {
-    let isLocked: Bool
-    let biometry: Biometry
-    let onUnlock: () -> Void
-
-    var body: some View {
-        GeometryReader { proxy in
-            VStack(alignment: .leading, spacing: 0) {
-                Text("Headroom")
-                    .overpass(.wordmark)
-                    .foregroundStyle(Theme.textPrimary)
-                    .accessibilityAddTraits(.isHeader)
-                DatumRule()
-                    .padding(.top, Theme.Space.s)
-                if isLocked {
-                    Text("Locked. Unlock to see your plan.")
-                        .font(.body)
-                        .foregroundStyle(Theme.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.top, Theme.Space.xl)
-                    Button(action: onUnlock) {
-                        Label(biometry.unlockTitle, systemImage: biometry.symbolName)
-                            .foregroundStyle(Theme.onAccent)
-                    }
-                    .buttonStyle(.glassProminent)
-                    .controlSize(.large)
-                    .padding(.top, Theme.Space.l)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .scenePadding(.horizontal)
-            // The top of the block sits at 40% of the height.
-            .padding(.top, proxy.size.height * 0.4)
-        }
-        .background(Theme.canvas.ignoresSafeArea())
-        .accessibilityElement(children: .contain)
-        .accessibilityAddTraits(.isModal)
-    }
 }

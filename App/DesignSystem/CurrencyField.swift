@@ -28,15 +28,24 @@ struct CurrencyField: View {
             Text("$")
                 .foregroundStyle(text.isEmpty ? Theme.textSecondary : Theme.textPrimary)
                 .accessibilityHidden(true)
-            TextField(label, text: $text, prompt: Text("0.00").foregroundStyle(Theme.textSecondary))
-                .keyboardType(allowsNegative ? .numbersAndPunctuation : .decimalPad)
-                .foregroundStyle(Theme.textPrimary)
-                .fixedSize()
-                .accessibilityLabel(label)
-                .accessibilityValue(spokenValue)
-                .accessibilityIdentifier(identifier ?? label)
+            if compact {
+                input(title: label)
+                    .accessibilityLabel(label)
+            } else {
+                // The row's LabeledContent names the field; a title here too would be read twice.
+                input(title: "")
+            }
         }
         .overpass(.amount)
+    }
+
+    private func input(title: String) -> some View {
+        TextField(title, text: $text, prompt: Text("0.00").foregroundStyle(Theme.textSecondary))
+            .keyboardType(allowsNegative ? .numbersAndPunctuation : .decimalPad)
+            .foregroundStyle(Theme.textPrimary)
+            .fixedSize()
+            .accessibilityValue(spokenValue)
+            .accessibilityIdentifier(identifier ?? label)
     }
 
     /// What VoiceOver reads for the amount: "$700", "minus $45.50", or "empty".

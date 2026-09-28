@@ -8,6 +8,7 @@ struct ResultView: View {
     @Environment(PlanStore.self) private var store
     @Environment(\.today) private var today
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var size
     /// True while the Confirm sheet that opened this screen is still closing over it.
     let isCovered: Bool
     @State private var purchase: Purchase
@@ -74,6 +75,15 @@ struct ResultView: View {
         .navigationTitle(displayName)
         .navigationSubtitle(Explainer.purchaseLine(purchase))
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            // The same subtitle drawn in Graphite: the bar sets navigationSubtitle in the system
+            // secondary label, 3.32:1 on Paper, and ignores a style on the Text.
+            ToolbarItem(placement: .subtitle) {
+                Text(Explainer.purchaseLine(purchase))
+                    .font(.footnote)
+                    .foregroundStyle(Theme.textSecondary)
+            }
+        }
         .sensoryFeedback(trigger: Self.status(outcome)) { _, new in
             switch new {
             case .fits: .success
@@ -161,10 +171,7 @@ struct ResultView: View {
                     .font(.footnote)
                     .foregroundStyle(Theme.textSecondary)
                 Button(Explainer.tryLabel(date, today: today)) { purchase.date = date }
-                    .buttonStyle(.bordered)
-                    .buttonBorderShape(.capsule)
-                    .controlSize(.large)
-                    .tint(Theme.accent)
+                    .buttonStyle(EarliestFitButtonStyle())
                     .accessibilityHint("Earliest date that stays above your floor")
                     .accessibilityIdentifier("tryEarliestDate")
             }
@@ -180,6 +187,17 @@ struct ResultView: View {
         let names = ResultChartModel.seriesNames(a.purchase)
         return VStack(alignment: .leading, spacing: Theme.Space.m) {
             CashChart(analysis: a, peel: shownPeel, measured: shownMeasured)
+            if let caption = ResultChartModel(a).caption(accessibilitySize: size.isAccessibilitySize) {
+                // At accessibility sizes the ring's and the floor's labels leave the plot for this line.
+                HStack(alignment: .firstTextBaseline, spacing: Theme.Space.s) {
+                    LowRing(tint: ResultStatus(a).tint)
+                        .alignmentGuide(.firstTextBaseline) { $0[.bottom] - 1 }
+                    Text(caption)
+                        .font(.footnote)
+                        .foregroundStyle(Theme.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
             ChartLegend(withName: names.with, withoutName: names.without)
             if let below = Explainer.belowFloorText(a) {
                 BelowFloorLine(text: below, tint: ResultStatus(a).tint)
@@ -238,6 +256,25 @@ struct ResultView: View {
                 .buttonStyle(.glassProminent)
             }
         }
+    }
+}
+
+/// "Try Fri Oct 16": an Evergreen label on a pale Evergreen capsule, as tall as a large
+/// bordered button. The system bordered fill (about 18% of the tint) leaves the label at
+/// 4.37:1 on Paper in light mode; a lighter fill keeps it at 4.5:1 or more in every appearance.
+struct EarliestFitButtonStyle: ButtonStyle {
+    static let fillOpacity = 0.08
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.body)
+            .foregroundStyle(Theme.accent)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+            .frame(minHeight: 44)
+            .background(Theme.accent.opacity(Self.fillOpacity), in: .capsule)
+            .contentShape(.capsule)
+            .opacity(configuration.isPressed ? 0.6 : 1)
     }
 }
 

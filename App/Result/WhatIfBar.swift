@@ -31,18 +31,13 @@ struct WhatIfBar: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Theme.Space.s) {
-            GlassEffectContainer(spacing: Theme.Space.s) {
+        GlassEffectContainer(spacing: Theme.Space.s) {
+            VStack(alignment: .leading, spacing: Theme.Space.s) {
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: Theme.Space.s) { dateCapsule; priceCapsule }
                     VStack(alignment: .leading, spacing: Theme.Space.s) { dateCapsule; priceCapsule }
                 }
-            }
-            if priceError {
-                Label(Self.priceErrorText, systemImage: "exclamationmark.circle")
-                    .font(.footnote)
-                    .foregroundStyle(Theme.danger)
-                    .fixedSize(horizontal: false, vertical: true)
+                if priceError { priceErrorLine }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -102,6 +97,20 @@ struct WhatIfBar: View {
             .onTapGesture { priceFocused = true }
             .glassEffect(.regular.interactive(), in: .capsule)
             .overlay { contrastStroke }
+    }
+
+    /// The error sits on glass of its own: the bar floats over the scrolling Result, and bare
+    /// Brick text there would land on Ink text and lines. The glass is tinted with Paper so a
+    /// bright line passing behind it stays faint under the words.
+    private var priceErrorLine: some View {
+        Label(Self.priceErrorText, systemImage: "exclamationmark.circle")
+            .font(.footnote)
+            .foregroundStyle(Theme.danger)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, Theme.Space.m)
+            .padding(.vertical, Theme.Space.s)
+            .glassEffect(.regular.tint(Theme.canvas.opacity(0.6)),
+                         in: .rect(cornerRadius: Theme.radius, style: .continuous))
     }
 
     /// Increase Contrast outlines each capsule in Graphite.

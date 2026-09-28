@@ -41,6 +41,8 @@ struct ResultChartModel {
     let withoutName: String
     /// The chart's VoiceOver value: the summary, any dates below the floor, and the horizon.
     let accessibilityValue: String
+    /// "Lowest $5 on Tue Oct 13. Floor $200.": the ring's and the datum's labels in words.
+    private let lowAndFloor: String
 
     private let withDays: [DayPoint]
     private let baseDays: [DayPoint]
@@ -67,6 +69,15 @@ struct ResultChartModel {
             Explainer.belowFloorText(a).map { $0 + "." },
             "Checked through \(a.checkedThrough.spokenText).",
         ].compactMap { $0 }.joined(separator: " ")
+        lowAndFloor = "Lowest \(a.purchaseLow.amount.displayText) on \(a.purchaseLow.date.shortTextNoBreak). "
+            + "Floor \(a.floor.displayText)."
+    }
+
+    /// At accessibility sizes the ring's label and "Floor $200" leave the plot, where they would
+    /// cover the ruler and the lines, and are set under the chart instead, as on the Ask gauge.
+    /// Nil at other sizes, where both labels sit in the plot.
+    func caption(accessibilitySize: Bool) -> String? {
+        accessibilitySize ? lowAndFloor : nil
     }
 
     /// "With laptop" and "Without laptop", using the item as it was read.
@@ -86,8 +97,8 @@ struct ResultChartModel {
     var showsBelowFloorArea: Bool { withPurchase.contains { $0.amount.cents < floor } }
 
     /// The With line part way through the peel: 0 lies on the Without line, 1 is the engine's
-    /// path. Positions are rounded to whole cents; only 0 and 1 are ever set, and Charts
-    /// animates between them.
+    /// path. Positions are rounded to whole cents. The chart redraws this for every frame of
+    /// the peel, and the below-floor fill is cut from the same points, so the two never part.
     func withShown(peel: Double) -> [ChartPoint] {
         zip(baseline, withPurchase).map { base, with in
             let gap = with.amount.cents - base.amount.cents
