@@ -6,7 +6,7 @@
 
 <p>
   <img src="docs/screenshots/ask-light.png" width="240" alt="Home screen showing $505 of spending room">
-  <img src="docs/screenshots/result-light.png" width="240" alt="Result for a $700 laptop: would cross your cash floor">
+  <img src="docs/screenshots/result-light.png" width="240" alt="Result for a $700 laptop: dips $195 below the $200 floor">
   <img src="docs/screenshots/result-dark.png" width="240" alt="The same result in dark mode">
 </p>
 
@@ -22,10 +22,10 @@ question ──► reader ──► you confirm item, price, date ──► engi
 
 The engine walks your balance forward one day at a time, with and without the purchase, and reports:
 
-- **Fits your cash floor**, **Would cross your cash floor**, **Known bills exceed projected cash**, or **Needs more information**
-- the lowest point and the day it happens
+- **Stays above your floor**, **Dips below your floor**, **Takes checking below $0**, or **Add a few details first**
+- the lowest point and the day it happens, and how far it sits above or below your floor
 - spending room today, and the earliest date the purchase fits
-- the paychecks and bills that drive the result
+- the paychecks and bills that drive the result, as a short ledger that adds up to the lowest point
 
 The AI never does math. Prices come only from the digits you typed, and every number on screen comes from the engine.
 
@@ -73,7 +73,7 @@ xcodebuild test -project Headroom.xcodeproj -scheme Headroom -destination 'platf
 
 ## Built with
 
-Swift 6, SwiftUI, Swift Charts, Swift Testing, Foundation Models, LocalAuthentication. The Xcode project is generated from [`project.yml`](project.yml) with XcodeGen. Design notes are in [docs/DESIGN.md](docs/DESIGN.md).
+Swift 6, SwiftUI, Swift Charts, Swift Testing, Foundation Models, LocalAuthentication. Readings are set in [Overpass](https://github.com/google/fonts/tree/main/ofl/overpass) (SIL Open Font License 1.1). The Xcode project is generated from [`project.yml`](project.yml) with XcodeGen. Design notes are in [docs/DESIGN.md](docs/DESIGN.md).
 
 ## Roadmap
 
