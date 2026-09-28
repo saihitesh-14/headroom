@@ -8,6 +8,10 @@ struct HeadroomApp: App {
 
     init() {
         Typography.register()
+        // Gate 14a (docs/REDESIGN-SPEC.md section 10): Overpass navigation titles. Only the bar's
+        // title properties change, never standardAppearance, so Liquid Glass stays.
+        UINavigationBar.appearance().largeTitleTextAttributes = [.font: Typography.uiFont(.wordmark)]
+        UINavigationBar.appearance().titleTextAttributes = [.font: Typography.uiFont(.navInline)]
         let arguments = ProcessInfo.processInfo.arguments
         if arguments.contains("-uiTestSamplePlan") || arguments.contains("-uiTestEmptyPlan") {
             // UI tests run against a throwaway file (the sample plan confirmed today, or nothing)

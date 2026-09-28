@@ -1,4 +1,5 @@
 import HeadroomCore
+import os
 import SwiftUI
 
 // The drawing marks (docs/REDESIGN-SPEC.md sections 1.2 and 4.2). Each has one meaning
@@ -274,10 +275,73 @@ private struct SectionClearance: Shape {
     }
 }
 
-/// The below-floor fill in the chart. Gate 14b may swap in a 45 degree hatch;
-/// until it passes, this is the flat 16% status tint.
-enum HatchStyle {
+/// The below-floor fill in the charts (gate 14b, section 6.2 item 1): the 16% status tint
+/// crossed by a 1 pt line at 45 degrees in the tint, on a 6 x 6 pt tile. The lines fall from
+/// leading to trailing, across the clearance ticks, which rise. The tint is resolved
+/// for the current appearance (light, dark, Increase Contrast), and each tile is rendered once
+/// per color and display scale, then reused. The pattern is anchored to the chart, so it moves
+/// with the marks when the page scrolls and stays put while the area grows.
+struct HatchStyle: ShapeStyle {
+    let tint: Color
+
     static func paint(_ tint: Color) -> AnyShapeStyle {
-        AnyShapeStyle(tint.opacity(0.16))
+        AnyShapeStyle(HatchStyle(tint: tint))
+    }
+
+    func resolve(in environment: EnvironmentValues) -> ImagePaint {
+        let tile = Self.tile(for: tint, in: environment)
+        return ImagePaint(image: Image(decorative: tile, scale: CGFloat(tile.width) / Self.side), scale: 1)
+    }
+
+    /// The tile's side in points.
+    static let side: CGFloat = 6
+
+    /// The tile for a tint as it resolves in an environment, at that environment's display scale.
+    static func tile(for tint: Color, in environment: EnvironmentValues) -> CGImage {
+        tile(tint.resolve(in: environment), scale: environment.displayScale)
+    }
+
+    private struct Key: Hashable {
+        let tint: Color.Resolved
+        let scale: CGFloat
+    }
+
+    private static let tiles = OSAllocatedUnfairLock<[Key: CGImage]>(initialState: [:])
+
+    /// The tile for a resolved tint at a scale in pixels per point. Rendered once, then cached.
+    static func tile(_ tint: Color.Resolved, scale: CGFloat) -> CGImage {
+        tiles.withLock { tiles in
+            let key = Key(tint: tint, scale: scale)
+            if let tile = tiles[key] { return tile }
+            let tile = render(tint, scale: scale)
+            tiles[key] = tile
+            return tile
+        }
+    }
+
+    /// Core Graphics rather than ImageRenderer, because a shape style resolves off the main actor.
+    private static func render(_ tint: Color.Resolved, scale: CGFloat) -> CGImage {
+        let pixels = max(1, Int((side * scale).rounded()))
+        let size = CGFloat(pixels)
+        let context = CGContext(
+            data: nil, width: pixels, height: pixels, bitsPerComponent: 8, bytesPerRow: 0,
+            space: CGColorSpace(name: CGColorSpace.sRGB)!,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        )!
+        let color = tint.cgColor
+        context.setFillColor(color.copy(alpha: color.alpha * 0.16) ?? color)
+        context.fill(CGRect(x: 0, y: 0, width: size, height: size))
+        // Lines from top leading to bottom trailing (y is up here), across the clearance mark's
+        // slash ticks rather than along them, so the ticks stay legible on the fill. The
+        // neighboring tiles' lines are drawn too, so they fill the corners and tiles join
+        // without a seam.
+        context.setStrokeColor(color)
+        context.setLineWidth(scale)
+        for offset in [-size, 0, size] {
+            context.move(to: CGPoint(x: -size, y: 2 * size + offset))
+            context.addLine(to: CGPoint(x: 2 * size, y: -size + offset))
+        }
+        context.strokePath()
+        return context.makeImage()!
     }
 }

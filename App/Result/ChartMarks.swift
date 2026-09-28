@@ -185,7 +185,7 @@ struct BelowFloorLine: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: Theme.Space.s) {
             RoundedRectangle(cornerRadius: 2)
-                .fill(tint.opacity(0.16))
+                .fill(HatchStyle.paint(tint))
                 .strokeBorder(tint, lineWidth: 1)
                 .frame(width: 16, height: 10)
                 .alignmentGuide(.firstTextBaseline) { $0[.bottom] }

@@ -30,3 +30,17 @@ jobs:
             exit 1
           fi
           echo "No network code."
+
+      - name: No dashes or middle dots in UI text
+        run: |
+          # No en or em dashes, or middle dots, in UI code or engine strings
+          if grep -rnE $'\xE2\x80\x93|\xE2\x80\x94|\xC2\xB7' App Packages/HeadroomCore/Sources --include=*.swift; then
+            echo "::error::Dash or middle dot in UI text."; exit 1; fi
+          echo "No dashes or middle dots."
+
+      - name: Overpass only in Typography.swift
+        run: |
+          # Overpass is only built in Typography.swift
+          if grep -rnE '"Overpass|CTFontManager|kCTFontVariationAttribute' App --include=*.swift | grep -v 'App/DesignSystem/Typography.swift'; then
+            echo "::error::Overpass used outside Typography.swift."; exit 1; fi
+          echo "Overpass is only built in Typography.swift."
